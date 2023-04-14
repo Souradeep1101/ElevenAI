@@ -22,8 +22,7 @@ class _ProfileState extends State<Profile> {
           right: 16,
           top: 10,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: ListView(
           children: [
             Text(
               'Profile',
