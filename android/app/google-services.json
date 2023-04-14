@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "504359343948",
+    "firebase_url": "https://elevenai-default-rtdb.firebaseio.com",
+    "project_id": "elevenai",
+    "storage_bucket": "elevenai.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:504359343948:android:1aef6085b17bb840b4a1e9",
+        "android_client_info": {
+          "package_name": "com.souradeep.eleven_ai"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "504359343948-6jrssqp4ci34p3dtbaf94hbp71gcmcav.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAKDMpmCgMHmOzEdpsIyewPOpN2YRch7yA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "504359343948-6jrssqp4ci34p3dtbaf94hbp71gcmcav.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "504359343948-fkal2bdjfuuqnb25hsr9b8o7qc6osip3.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.souradeep.elevenAi"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
