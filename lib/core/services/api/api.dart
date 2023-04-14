@@ -2,11 +2,12 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:eleven_ai/widgets/custom_snack_bar.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/http.dart';
 
 class Api {
-  static const apiKey = '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';
+  static String? apiKey = dotenv.env['API_KEY'];
 
   Future<Map<String, dynamic>?> generateText(
       {required List? messages, required BuildContext context}) async {
