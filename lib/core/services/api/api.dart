@@ -2,22 +2,22 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:eleven_ai/widgets/custom_snack_bar.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/http.dart';
 
 class Api {
-  static String? apiKey = dotenv.env['API_KEY'];
-
-  Future<Map<String, dynamic>?> generateText(
-      {required List? messages, required BuildContext context}) async {
+  Future<Map<String, dynamic>?> generateText({
+    required List? messages,
+    required BuildContext context,
+    required String? apiKey,
+  }) async {
     const url = 'https://api.openai.com/v1/chat/completions';
     try {
       final response = await http.post(
         Uri.parse(url),
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer $apiKey',
+          'Authorization': 'Bearer ${apiKey!}',
         },
         body: jsonEncode({
           'model': 'gpt-3.5-turbo',
@@ -76,8 +76,11 @@ class Api {
     }
   }
 
-  Future<Map<String?, Response?>?> generateImage(
-      {required String message, required BuildContext context}) async {
+  Future<Map<String?, Response?>?> generateImage({
+    required String message,
+    required BuildContext context,
+    required String? apiKey,
+  }) async {
     const url = 'https://api.openai.com/v1/images/generations';
 
     try {

@@ -1,7 +1,9 @@
 import 'dart:typed_data';
+import 'package:eleven_ai/controllers/custom_getx_controller.dart';
 import 'package:eleven_ai/widgets/custom_snack_bar.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:get/get.dart' as get_x;
 import 'package:http/http.dart';
 import 'package:path/path.dart' as path;
 import 'package:eleven_ai/core/firebase/database/database.dart';
@@ -46,8 +48,14 @@ class _ChatState extends State<Chat> with TickerProviderStateMixin {
   late AnimationController animationController;
   late Animation<Color?> colorTween;
   bool isLoading = false;
+  CustomGetXController customGetXController =
+      get_x.Get.find<CustomGetXController>();
 
-  void _handleChatSubmit({required String text, List? data}) async {
+  void _handleChatSubmit({
+    required String text,
+    List? data,
+    required String? apiKey,
+  }) async {
     if (_formKey.currentState!.validate()) {
       _textController.clear();
       setState(() {
@@ -64,7 +72,11 @@ class _ChatState extends State<Chat> with TickerProviderStateMixin {
         pushData: true,
         context: context,
       );
-      gptData = await Api().generateText(messages: data, context: context);
+      gptData = await Api().generateText(
+        messages: data,
+        context: context,
+        apiKey: apiKey,
+      );
       setState(() {
         isLoading = false;
       });
@@ -81,7 +93,10 @@ class _ChatState extends State<Chat> with TickerProviderStateMixin {
     }
   }
 
-  void _handleImageSubmit({required String text}) async {
+  void _handleImageSubmit({
+    required String text,
+    required String? apiKey,
+  }) async {
     _textController.clear();
     setState(() {
       isLoading = true;
@@ -97,8 +112,11 @@ class _ChatState extends State<Chat> with TickerProviderStateMixin {
       pushData: true,
       context: context,
     );
-    Map<String?, Response?>? data =
-        await Api().generateImage(message: text, context: context);
+    Map<String?, Response?>? data = await Api().generateImage(
+      message: text,
+      context: context,
+      apiKey: apiKey,
+    );
     var response = data?.values.first;
     if (response != null) {
       Uint8List imageBytes = response.bodyBytes;
@@ -173,215 +191,222 @@ class _ChatState extends State<Chat> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    return Form(
-      key: _formKey,
-      child: GestureDetector(
-        onTap: () {
-          FocusScope.of(context).unfocus();
-        },
-        child: WillPopScope(
-          onWillPop: () {
-            if (showEmoji) {
-              setState(() {
-                showEmoji = !showEmoji;
-              });
-              return Future.value(false);
-            } else {
-              return Future.value(true);
-            }
+    return get_x.GetBuilder<CustomGetXController>(builder: (controller) {
+      return Form(
+        key: _formKey,
+        child: GestureDetector(
+          onTap: () {
+            FocusScope.of(context).unfocus();
           },
-          child: Scaffold(
-            appBar: AppBar(
-              title: Text(
-                widget.title,
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w500,
+          child: WillPopScope(
+            onWillPop: () {
+              if (showEmoji) {
+                setState(() {
+                  showEmoji = !showEmoji;
+                });
+                return Future.value(false);
+              } else {
+                return Future.value(true);
+              }
+            },
+            child: Scaffold(
+              appBar: AppBar(
+                title: Text(
+                  widget.title,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w500,
+                    color: Theme.of(context).primaryColor,
+                  ),
+                ),
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                iconTheme: IconThemeData(
                   color: Theme.of(context).primaryColor,
                 ),
               ),
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              iconTheme: IconThemeData(
-                color: Theme.of(context).primaryColor,
-              ),
-            ),
-            backgroundColor: Theme.of(context).backgroundColor,
-            body: SafeArea(
-              child: Column(
-                children: [
-                  Expanded(
-                    child: (!widget.isImage)
-                        ? FirebaseAnimatedList(
-                            query:
-                                FirebaseDatabase.instance.ref(widget.chatPath),
-                            sort: (a, b) {
-                              return b.key!.compareTo(a.key!);
-                            },
-                            reverse: true,
-                            padding: const EdgeInsets.all(8),
-                            itemBuilder: (context, snapshot, animation, index) {
-                              dynamic value = snapshot.value;
-                              if (value['content'] != null &&
-                                  value['role'] != 'system') {
-                                return ChatMessage(
-                                  text: value['content'],
-                                  isMe:
-                                      (value['role'] == 'user') ? true : false,
-                                  animation: animation,
-                                );
-                              } else {
-                                return const SizedBox();
-                              }
-                            },
-                          )
-                        : FirebaseAnimatedList(
-                            query: FirebaseDatabase.instance
-                                .ref(widget.imagePath!),
-                            sort: (a, b) {
-                              return b.key!.compareTo(a.key!);
-                            },
-                            reverse: true,
-                            padding: const EdgeInsets.all(8),
-                            itemBuilder: (context, snapshot, animation, index) {
-                              dynamic value = snapshot.value;
-                              if (value['content'] != null &&
-                                  value['role'] != 'system') {
-                                if (value['role'] == 'user') {
+              backgroundColor: Theme.of(context).backgroundColor,
+              body: SafeArea(
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: (!widget.isImage)
+                          ? FirebaseAnimatedList(
+                              query: FirebaseDatabase.instance
+                                  .ref(widget.chatPath),
+                              sort: (a, b) {
+                                return b.key!.compareTo(a.key!);
+                              },
+                              reverse: true,
+                              padding: const EdgeInsets.all(8),
+                              itemBuilder:
+                                  (context, snapshot, animation, index) {
+                                dynamic value = snapshot.value;
+                                if (value['content'] != null &&
+                                    value['role'] != 'system') {
                                   return ChatMessage(
                                     text: value['content'],
-                                    isMe: true,
+                                    isMe: (value['role'] == 'user')
+                                        ? true
+                                        : false,
                                     animation: animation,
                                   );
                                 } else {
-                                  return ChatMessage(
-                                    text: value['content'],
-                                    isMe: false,
-                                    animation: animation,
-                                    isImage: true,
-                                  );
+                                  return const SizedBox();
                                 }
-                              } else {
-                                return const SizedBox();
-                              }
-                            },
-                          ),
-                  ),
-                  (isLoading)
-                      ? LinearProgressIndicator(
-                          minHeight: 6,
-                          backgroundColor: Theme.of(context).backgroundColor,
-                          valueColor: colorTween,
-                        )
-                      : const SizedBox(),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).primaryColor,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Theme.of(context).shadowColor.withOpacity(0.5),
-                          spreadRadius: 1,
-                          blurRadius: 5,
-                          offset: const Offset(0, 3),
-                        ),
-                      ],
+                              },
+                            )
+                          : FirebaseAnimatedList(
+                              query: FirebaseDatabase.instance
+                                  .ref(widget.imagePath!),
+                              sort: (a, b) {
+                                return b.key!.compareTo(a.key!);
+                              },
+                              reverse: true,
+                              padding: const EdgeInsets.all(8),
+                              itemBuilder:
+                                  (context, snapshot, animation, index) {
+                                dynamic value = snapshot.value;
+                                if (value['content'] != null &&
+                                    value['role'] != 'system') {
+                                  if (value['role'] == 'user') {
+                                    return ChatMessage(
+                                      text: value['content'],
+                                      isMe: true,
+                                      animation: animation,
+                                    );
+                                  } else {
+                                    return ChatMessage(
+                                      text: value['content'],
+                                      isMe: false,
+                                      animation: animation,
+                                      isImage: true,
+                                    );
+                                  }
+                                } else {
+                                  return const SizedBox();
+                                }
+                              },
+                            ),
                     ),
-                    child: Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(
-                            LineIcons.smilingFaceWithHeartEyes,
-                            color: Colors.white,
+                    (isLoading)
+                        ? LinearProgressIndicator(
+                            minHeight: 6,
+                            backgroundColor: Theme.of(context).backgroundColor,
+                            valueColor: colorTween,
+                          )
+                        : const SizedBox(),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).primaryColor,
+                        boxShadow: [
+                          BoxShadow(
+                            color:
+                                Theme.of(context).shadowColor.withOpacity(0.5),
+                            spreadRadius: 1,
+                            blurRadius: 5,
+                            offset: const Offset(0, 3),
                           ),
-                          onPressed: () {
-                            setState(() {
-                              FocusScope.of(context).unfocus();
-                              showEmoji = true;
-                            });
-                          },
-                        ),
-                        Expanded(
-                          child: TextFormField(
-                            readOnly: isLoading,
-                            onTap: () {
-                              if (showEmoji) {
-                                setState(() {
-                                  showEmoji = !showEmoji;
-                                });
-                              }
-                            },
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter some text!';
-                              }
-                              return null;
-                            },
-                            cursorColor: Colors.white,
-                            controller: _textController,
-                            style: GoogleFonts.nunitoSans(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(
+                              LineIcons.smilingFaceWithHeartEyes,
                               color: Colors.white,
                             ),
-                            decoration: InputDecoration(
-                              hintText: 'Type your message',
-                              hintStyle: GoogleFonts.nunitoSans(
+                            onPressed: () {
+                              setState(() {
+                                FocusScope.of(context).unfocus();
+                                showEmoji = true;
+                              });
+                            },
+                          ),
+                          Expanded(
+                            child: TextFormField(
+                              readOnly: isLoading,
+                              onTap: () {
+                                if (showEmoji) {
+                                  setState(() {
+                                    showEmoji = !showEmoji;
+                                  });
+                                }
+                              },
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please enter some text!';
+                                }
+                                return null;
+                              },
+                              cursorColor: Colors.white,
+                              controller: _textController,
+                              style: GoogleFonts.nunitoSans(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w500,
-                                color: Colors.white.withOpacity(0.5),
+                                color: Colors.white,
                               ),
-                              border: InputBorder.none,
+                              decoration: InputDecoration(
+                                hintText: 'Type your message',
+                                hintStyle: GoogleFonts.nunitoSans(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white.withOpacity(0.5),
+                                ),
+                                border: InputBorder.none,
+                              ),
                             ),
                           ),
-                        ),
-                        IconButton(
-                          icon: const Icon(
-                            LineIcons.paperPlane,
-                            color: Colors.white,
+                          IconButton(
+                            icon: const Icon(
+                              LineIcons.paperPlane,
+                              color: Colors.white,
+                            ),
+                            onPressed: () => (!isLoading)
+                                ? (!widget.isImage)
+                                    ? _handleChatSubmit(
+                                        text: _textController.text,
+                                        data: data,
+                                        apiKey: controller.apiKey)
+                                    : _handleImageSubmit(
+                                        text: _textController.text,
+                                        apiKey: controller.apiKey,
+                                      )
+                                : () {},
                           ),
-                          onPressed: () => (!isLoading)
-                              ? (!widget.isImage)
-                                  ? _handleChatSubmit(
-                                      text: _textController.text,
-                                      data: data,
-                                    )
-                                  : _handleImageSubmit(
-                                      text: _textController.text,
-                                    )
-                              : () {},
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  AnimatedSize(
-                    curve: Curves.ease,
-                    duration: const Duration(milliseconds: 300),
-                    child: (showEmoji)
-                        ? SizedBox(
-                            height: MediaQuery.of(context).size.height * 0.35,
-                            child: EmojiPicker(
-                              textEditingController: _textController,
-                              config: Config(
-                                columns: 7,
-                                emojiSizeMax: 32 *
-                                    (foundation.defaultTargetPlatform ==
-                                            TargetPlatform.iOS
-                                        ? 1.30
-                                        : 1.0),
-                                bgColor: Theme.of(context).backgroundColor,
+                    AnimatedSize(
+                      curve: Curves.ease,
+                      duration: const Duration(milliseconds: 300),
+                      child: (showEmoji)
+                          ? SizedBox(
+                              height: MediaQuery.of(context).size.height * 0.35,
+                              child: EmojiPicker(
+                                textEditingController: _textController,
+                                config: Config(
+                                  columns: 7,
+                                  emojiSizeMax: 32 *
+                                      (foundation.defaultTargetPlatform ==
+                                              TargetPlatform.iOS
+                                          ? 1.30
+                                          : 1.0),
+                                  bgColor: Theme.of(context).backgroundColor,
+                                ),
                               ),
+                            )
+                          : const SizedBox(
+                              width: double.maxFinite,
                             ),
-                          )
-                        : const SizedBox(
-                            width: double.maxFinite,
-                          ),
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
         ),
-      ),
-    );
+      );
+    });
   }
 }
